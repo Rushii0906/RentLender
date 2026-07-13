@@ -199,7 +199,14 @@ export async function logSimulatedReminder(data: {
 
     revalidatePath(`/agreements/${data.agreementId}`);
     revalidatePath("/reminders");
-    return { success: result.success, log, error: result.error };
+    return { 
+      success: result.success, 
+      log, 
+      messageBody, 
+      recipientMobile, 
+      simulated: result.simulated, 
+      error: result.error 
+    };
   } catch (error: any) {
     console.error("Failed to log reminder:", error);
     return { success: false, error: error.message || "Failed to log reminder" };

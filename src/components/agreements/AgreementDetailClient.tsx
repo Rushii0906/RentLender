@@ -118,10 +118,24 @@ export default function AgreementDetailClient({ agreement }: { agreement: Agreem
     });
 
     if (res.success) {
-      toast(`Simulated ${channel.toUpperCase()} logged for ${recipient === "tenant" ? agreement.tenantName : agreement.ownerName}`);
+      toast(`${res.simulated ? "Simulated" : "Real"} ${channel.toUpperCase()} logged for ${recipient === "tenant" ? agreement.tenantName : agreement.ownerName}`);
+      
+      // If in simulation mode, trigger the direct sharing links for demo!
+      if (res.simulated && res.messageBody && res.recipientMobile) {
+        const cleanMobile = res.recipientMobile.replace(/\s+/g, "");
+        const encodedBody = encodeURIComponent(res.messageBody);
+        
+        if (channel === "whatsapp") {
+          const waPhone = cleanMobile.replace(/[^\d+]/g, "");
+          window.open(`https://api.whatsapp.com/send?phone=${waPhone}&text=${encodedBody}`, "_blank");
+        } else if (channel === "sms") {
+          window.open(`sms:${cleanMobile}?body=${encodedBody}`, "_self");
+        }
+      }
+
       router.refresh();
     } else {
-      toast("Failed to log simulated reminder", "error");
+      toast(res.error || "Failed to log simulated reminder", "error");
     }
     setSendingReminder(false);
   };
