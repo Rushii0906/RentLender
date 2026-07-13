@@ -1,0 +1,62 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Agreement {
+  id              String        @id @default(uuid())
+  tenantName      String        @map("tenant_name")
+  tenantMobile    String        @map("tenant_mobile")
+  ownerName       String        @map("owner_name")
+  ownerMobile     String        @map("owner_mobile")
+  propertyAddress String        @map("property_address")
+  rentAmount      Float         @map("rent_amount")
+  securityDeposit Float         @map("security_deposit")
+  startDate       DateTime      @map("start_date")
+  durationMonths  Int           @default(11) @map("duration_months")
+  expiryDate      DateTime      @map("expiry_date")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  reminders       ReminderLog[]
+
+  @@index([expiryDate])
+  @@map("agreements")
+}
+
+model ReminderLog {
+  id          String    @id @default(uuid())
+  agreementId String    @map("agreement_id")
+  agreement   Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  type        String    // "30_day" | "7_day" | "on_expiry"
+  channel     String    // "whatsapp" | "sms"
+  recipient   String    // "tenant" | "owner"
+  sentAt      DateTime  @default(now()) @map("sent_at")
+  status      String    // "simulated_sent"
+
+  @@index([agreementId])
+  @@map("reminder_logs")
+}
+
+model GreetingLog {
+  id             String   @id @default(uuid())
+  occasion       String
+  channel        String   // "whatsapp" | "sms"
+  recipientGroup String   @map("recipient_group") // "all" | "active_only" | "custom_selection"
+  sentAt         DateTime @default(now()) @map("sent_at")
+
+  @@map("greeting_logs")
+}

@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #111827; /* Tailwind gray-900 for high readability */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-public-sans), sans-serif;
+  
+  /* Samarth Services Design Tokens */
+  --color-brand-yellow: #F5B301;
+  --color-brand-yellow-dark: #D99B00;
+  --color-surface-bg: #F7F7F8;
+  --color-surface-bg-alt: #F1F1F3;
+  --color-surface-border: #E5E5E7;
+  
+  /* Status Colors */
+  --color-status-active: #16A34A;
+  --color-status-expiring: #D97706;
+  --color-status-expired: #DC2626;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom styles for accessibility and form controls */
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--color-brand-yellow);
+  outline-offset: 1px;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C1C1C4;
+}
