@@ -269,8 +269,16 @@ export async function logSimulatedGreeting(data: {
       },
     });
 
+    const isSimulated = results.length > 0 ? results[0].simulated : true;
+
     revalidatePath("/greetings");
-    return { success: true, log };
+    return { 
+      success: true, 
+      log, 
+      recipientMobiles: uniqueMobiles, 
+      messageText: data.messageText, 
+      simulated: isSimulated 
+    };
   } catch (error: any) {
     console.error("Failed to log greeting:", error);
     return { success: false, error: error.message || "Failed to log greeting" };

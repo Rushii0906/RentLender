@@ -55,6 +55,13 @@ export default function GreetingsComposerClient({
   const [messageText, setMessageText] = useState<string>(templates["Diwali"]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]); // holds agreement IDs or mobile numbers
   const [sending, setSending] = useState(false);
+  
+  const [demoSends, setDemoSends] = useState<{
+    mobiles: string[];
+    text: string;
+    channel: "sms" | "whatsapp";
+  } | null>(null);
+  const [dispatchedMobiles, setDispatchedMobiles] = useState<string[]>([]);
 
   // Sync templates on occasion change
   useEffect(() => {
@@ -108,8 +115,18 @@ export default function GreetingsComposerClient({
     });
 
     if (res.success) {
-      toast(`Greeting broadcast completed for ${count} contacts!`);
+      toast(`${res.simulated ? "Simulated" : "Real"} greeting broadcast logged for ${count} contacts!`);
       setSelectedContacts([]);
+      
+      if (res.simulated && res.recipientMobiles && res.recipientMobiles.length > 0) {
+        setDemoSends({
+          mobiles: res.recipientMobiles,
+          text: res.messageText || messageText,
+          channel: channel,
+        });
+        setDispatchedMobiles([]);
+      }
+
       router.refresh();
     } else {
       toast(res.error || "Failed to log greeting broadcast.", "error");
@@ -363,6 +380,84 @@ export default function GreetingsComposerClient({
         </div>
 
       </div>
+
+      {/* Demo Broadcast Send Queue Modal */}
+      {demoSends && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in">
+          <div className="bg-white p-6 rounded-xl border border-surface-border max-w-md w-full shadow-xl space-y-4 flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-surface-border">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-brand-yellow-dark" />
+                  Demo Broadcast Queue ({demoSends.channel.toUpperCase()})
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Click each recipient to open pre-filled draft in {demoSends.channel === "whatsapp" ? "WhatsApp" : "SMS app"}
+                </p>
+              </div>
+              <button 
+                onClick={() => setDemoSends(null)}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                <ChevronDown className="h-5 w-5 transform rotate-180" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 py-1">
+              {demoSends.mobiles.map((mobile) => {
+                const isDispatched = dispatchedMobiles.includes(mobile);
+                return (
+                  <div key={mobile} className="flex items-center justify-between p-3 border border-surface-border bg-surface-bg rounded-lg text-xs">
+                    <div className="mr-2">
+                      <p className="font-semibold text-gray-800">{mobile}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[240px]">
+                        "{demoSends.text}"
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const cleanMobile = mobile.replace(/\s+/g, "");
+                        const encodedBody = encodeURIComponent(demoSends.text);
+                        
+                        if (demoSends.channel === "whatsapp") {
+                          const waPhone = cleanMobile.replace(/[^\d+]/g, "");
+                          window.open(`https://api.whatsapp.com/send?phone=${waPhone}&text=${encodedBody}`, "_blank");
+                        } else if (demoSends.channel === "sms") {
+                          window.open(`sms:${cleanMobile}?body=${encodedBody}`, "_self");
+                        }
+
+                        if (!dispatchedMobiles.includes(mobile)) {
+                          setDispatchedMobiles((prev) => [...prev, mobile]);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all shrink-0 ${
+                        isDispatched
+                          ? "bg-green-50 text-status-active border-green-200"
+                          : "bg-brand-yellow hover:bg-brand-yellow-dark text-gray-900 border-transparent"
+                      }`}
+                    >
+                      {isDispatched ? "Sent (Open Draft)" : "Send Draft"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-surface-border flex justify-between items-center text-xs">
+              <span className="text-gray-500 font-medium">
+                {dispatchedMobiles.length} of {demoSends.mobiles.length} drafts opened
+              </span>
+              <button
+                onClick={() => setDemoSends(null)}
+                className="px-4 py-2 border border-surface-border bg-white text-gray-700 hover:bg-surface-bg rounded-xl font-semibold transition-colors focus:outline-none"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
