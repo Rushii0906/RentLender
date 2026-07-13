@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { calculateExpiryDate, getAgreementStatus } from "@/lib/expiry";
 import { revalidatePath } from "next/cache";
+import { Agreement } from "@prisma/client";
 
 export async function loginAction(formData: FormData) {
   const email = formData.get("email")?.toString();
@@ -221,7 +222,7 @@ export async function logSimulatedGreeting(data: {
       recipientMobiles = data.selectedMobiles;
     } else {
       const today = new Date();
-      let agreements = await db.agreement.findMany({});
+      let agreements: Agreement[] = await db.agreement.findMany({});
 
       if (data.recipientGroup === "active_only") {
         agreements = agreements.filter(

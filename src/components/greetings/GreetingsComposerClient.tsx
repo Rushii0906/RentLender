@@ -125,6 +125,17 @@ export default function GreetingsComposerClient({
     });
   };
 
+  const formatTime = (date: Date | string) => {
+    const d = new Date(date);
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const seconds = String(d.getSeconds()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${hours}:${minutes}:${seconds} ${ampm}`;
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Title */}
@@ -342,8 +353,8 @@ export default function GreetingsComposerClient({
                   <p className="text-[10px] text-gray-600">
                     Group: <span className="font-semibold">{log.recipientGroup}</span>
                   </p>
-                  <p className="text-[9px] text-gray-400">
-                    {formatDate(log.sentAt)} at {new Date(log.sentAt).toLocaleTimeString()}
+                  <p className="text-[9px] text-gray-400" suppressHydrationWarning>
+                    {formatDate(log.sentAt)} at {formatTime(log.sentAt)}
                   </p>
                 </div>
               ))}
