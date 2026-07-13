@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { calculateExpiryDate } from "@/lib/expiry";
+import { calculateExpiryDate, getAgreementStatus } from "@/lib/expiry";
 import { revalidatePath } from "next/cache";
 
 export async function loginAction(formData: FormData) {
@@ -147,6 +147,8 @@ export async function deleteAgreement(id: string) {
   }
 }
 
+import { sendTwilioMessage, formatReminderMessage } from "@/lib/messaging";
+
 // LOG SIMULATED REMINDER ACTION
 export async function logSimulatedReminder(data: {
   agreementId: string;
@@ -155,32 +157,102 @@ export async function logSimulatedReminder(data: {
   recipient: string;
 }) {
   try {
+    const agreement = await db.agreement.findUnique({
+      where: { id: data.agreementId },
+    });
+
+    if (!agreement) {
+      throw new Error(`Agreement with ID ${data.agreementId} not found.`);
+    }
+
+    const recipientName = data.recipient === "tenant" ? agreement.tenantName : agreement.ownerName;
+    const recipientMobile = data.recipient === "tenant" ? agreement.tenantMobile : agreement.ownerMobile;
+
+    const messageBody = formatReminderMessage({
+      recipientName,
+      propertyAddress: agreement.propertyAddress,
+      expiryDate: agreement.expiryDate,
+      type: data.type,
+    });
+
+    const result = await sendTwilioMessage({
+      to: recipientMobile,
+      body: messageBody,
+      channel: data.channel as "sms" | "whatsapp",
+    });
+
+    let statusValue = "simulated_sent";
+    if (!result.simulated) {
+      statusValue = result.success ? "sent" : "failed";
+    }
+
     const log = await db.reminderLog.create({
       data: {
         agreementId: data.agreementId,
         type: data.type,
         channel: data.channel,
         recipient: data.recipient,
-        status: "simulated_sent",
+        status: statusValue,
       },
     });
 
     revalidatePath(`/agreements/${data.agreementId}`);
     revalidatePath("/reminders");
-    return { success: true, log };
+    return { success: result.success, log, error: result.error };
   } catch (error: any) {
     console.error("Failed to log reminder:", error);
     return { success: false, error: error.message || "Failed to log reminder" };
   }
 }
 
+
 // LOG SIMULATED GREETING ACTION
 export async function logSimulatedGreeting(data: {
   occasion: string;
   channel: string;
   recipientGroup: string;
+  messageText: string;
+  selectedMobiles?: string[];
 }) {
   try {
+    let recipientMobiles: string[] = [];
+
+    if (data.selectedMobiles && data.selectedMobiles.length > 0) {
+      recipientMobiles = data.selectedMobiles;
+    } else {
+      const today = new Date();
+      let agreements = await db.agreement.findMany({});
+
+      if (data.recipientGroup === "active_only") {
+        agreements = agreements.filter(
+          (ag) => getAgreementStatus(ag.expiryDate, today) !== "expired"
+        );
+      }
+
+      for (const ag of agreements) {
+        recipientMobiles.push(ag.tenantMobile);
+        recipientMobiles.push(ag.ownerMobile);
+      }
+    }
+
+    const uniqueMobiles = Array.from(new Set(recipientMobiles));
+
+    // Send messages using the Twilio helper
+    const promises = uniqueMobiles.map((mobile) =>
+      sendTwilioMessage({
+        to: mobile,
+        body: data.messageText,
+        channel: data.channel as "sms" | "whatsapp",
+      })
+    );
+
+    const results = await Promise.all(promises);
+    const failedSends = results.filter((res) => !res.success);
+
+    if (failedSends.length > 0 && failedSends.length === uniqueMobiles.length) {
+      throw new Error(`All broadcasts failed. First error: ${failedSends[0].error}`);
+    }
+
     const log = await db.greetingLog.create({
       data: {
         occasion: data.occasion,
@@ -196,3 +268,4 @@ export async function logSimulatedGreeting(data: {
     return { success: false, error: error.message || "Failed to log greeting" };
   }
 }
+

@@ -103,14 +103,16 @@ export default function GreetingsComposerClient({
       occasion,
       channel,
       recipientGroup: recipientGroup === "custom" ? `custom_selection (${count})` : recipientGroup,
+      messageText,
+      selectedMobiles: recipientGroup === "custom" ? selectedContacts : undefined,
     });
 
     if (res.success) {
-      toast(`Simulated greeting broadcast completed for ${count} contacts!`);
+      toast(`Greeting broadcast completed for ${count} contacts!`);
       setSelectedContacts([]);
       router.refresh();
     } else {
-      toast("Failed to log greeting broadcast.", "error");
+      toast(res.error || "Failed to log greeting broadcast.", "error");
     }
     setSending(false);
   };
