@@ -12,6 +12,7 @@ import {
   Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logoutAction } from "@/app/actions";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -88,9 +89,8 @@ export default function Sidebar() {
         {/* Footer Actions */}
         <div className="p-4 border-t border-surface-border">
           <button 
-            onClick={() => {
-              // Simulated Logout
-              document.cookie = "samarth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+            onClick={async () => {
+              await logoutAction();
               window.location.href = "/login";
             }}
             className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none"
