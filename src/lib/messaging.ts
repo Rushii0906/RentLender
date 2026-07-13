@@ -34,16 +34,16 @@ Body: "${body}"
   }
 
   try {
-    const formattedTo = channel === "whatsapp" ? `whatsapp:${to}` : to;
+    const cleanTo = to.replace(/\s+/g, "");
+    const formattedTo = channel === "whatsapp" ? `whatsapp:${cleanTo}` : cleanTo;
     
     // Set standard WhatsApp sandbox/sender or SMS sender
-    const fromNumber = channel === "whatsapp" 
-      ? (twilioWhatsAppNumber ? `whatsapp:${twilioWhatsAppNumber}` : undefined)
-      : twilioSmsNumber;
-
-    if (!fromNumber) {
+    const rawFrom = channel === "whatsapp" ? twilioWhatsAppNumber : twilioSmsNumber;
+    if (!rawFrom) {
       throw new Error(`Twilio sender number for ${channel} is not configured in environment variables.`);
     }
+    const cleanFrom = rawFrom.replace(/\s+/g, "");
+    const fromNumber = channel === "whatsapp" ? `whatsapp:${cleanFrom}` : cleanFrom;
 
     await client.messages.create({
       body: body,
@@ -51,7 +51,7 @@ Body: "${body}"
       to: formattedTo,
     });
 
-    console.log(`[REAL MESSAGE SENT] Channel: ${channel.toUpperCase()}, To: ${to}`);
+    console.log(`[REAL MESSAGE SENT] Channel: ${channel.toUpperCase()}, To: ${cleanTo}`);
     return { success: true, simulated: false };
   } catch (error: any) {
     console.error(`Failed to send message via Twilio:`, error);
